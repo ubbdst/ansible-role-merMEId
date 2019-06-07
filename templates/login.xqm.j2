@@ -1,0 +1,5 @@
+declare function login:function() as xs:boolean
+{
+  let $lgin := xdb:login("/db", "admin", "{{ existdb_password }}")
+  return $lgin
+};

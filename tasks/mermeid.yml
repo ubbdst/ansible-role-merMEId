@@ -1,0 +1,49 @@
+- name: "Clone mermeid"
+  git:
+    version: "{{ mermeid_version }}"
+    repo: "{{ mermeid_git_repo }}"
+    dest: "{{ mermeid_source }}"
+
+- name: "add template for {{ items }}"
+  template:
+    src: "{{ item }}"
+    dest: "{{ mermeid_source }}/trunk/local_config/{{ item | replace('\\.j2','')}}_{{ instance_name }}"
+  with_items:
+  - "mermeid_configuration.xml.j2"
+  - "login.xqm.j2"  
+
+- name: "create orbeon dir"
+  file:
+    path: "/var/lib/tomcat/webapps/orbeon/xforms-jsp/mei-form"
+    state: directory
+    owner: "tomcat"
+    group: "tomcat"
+
+- name: "place mei-form in orbeon"
+  copy:
+    remote_src: yes
+    src: "{{ mermeid_source }}/orbeon/mei_form.jsp"
+    dest: "{{ orbeon_mei_form_path }}/index.jsp"
+
+- name: "build MerMEId"
+  shell: "ant clean && ant -Dwebapp.instance={{ instance_name }}"
+  vars:
+    chdir: "{{ mermeid_source }}"
+
+- name: "deploy MerMeID"
+  copy:
+    remote_src: yes
+    src: "{{ mermeid_source }}/editor.war"
+    dest: "/var/lib/tomcat/webapps/editor.war"
+
+- name: "install MerMEId database to exist-db"
+  shell: "ant upload -Dwebapp.instance=mymermeid -Dhostport=localhost:8080 -Dserver.pass={{ existdb_password }}"
+  vars:
+    chdir: "{{ mermeid_source }}"
+
+- name: "grant write permissions from API"
+  shell: "curl {{ item }}"
+  with_items:
+  - "http://localhost:8080/exist/rest/db/apps/filter/xchmod.xq"
+  - "http://localhost:8080/exist/rest/db/mermeid/xchmod.xq"
+

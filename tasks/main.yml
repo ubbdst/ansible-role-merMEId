@@ -1,0 +1,12 @@
+---
+# tasks file for mermeid
+- name: "install {{ mermeid_dependencies }}"
+  yum:
+    name: "{{ mermeid_dependencies }}"
+  become: true
+
+- name: "Import tasks Orbeon"
+  import_tasks: "orbeon.yml"
+
+- name: "Import tasks for mermeid"
+  import_tasks: "mermeid.yml"

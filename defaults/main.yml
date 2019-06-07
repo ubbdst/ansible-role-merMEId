@@ -1,0 +1,15 @@
+---
+# defaults file for mermeid
+mermeid_instance_name:
+mermeid_hostname: "http://{{ mermeid_instance_name }}"
+mermeid_git: "git@github.com:ubbdst/MerMEId.git"
+mermeid_source: "/home/centos/mermeid"
+mermeid_version: "master"
+mermeid_env:
+  XML_STORE: "/opt/xml-store"
+mermeid_dependencies: ["ant","unzip"]
+exist_db_version: "4.7.0"
+orbeon_download_url: "https://github.com/orbeon/orbeon-forms/releases/download/tag-release-4.9-ce/orbeon-4.9.0.201505052329-CE.zip"
+orbeon_source: "/home/centos/orbeon"
+orbeon_war: "/var/lib/tomcat/webapps/orbeon.war"
+orbeon_rebuild: false

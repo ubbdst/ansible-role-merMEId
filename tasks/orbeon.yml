@@ -1,0 +1,28 @@
+- name: "Stat {{ orbeon_war }}"
+  stat:
+    path: "{{ orbeon_war }}"
+  register: "orbeon_tomcat"
+
+- name: "Orbeon Block"
+  block:
+  - name: "unarchive"
+    unarchive:
+      remote_src: "yes"
+      src: "{{ orbeon_download_url }}"
+      dest: "{{ orbeon_source }}"
+
+
+  - name: "Deploy Orbeon"
+    copy:
+      remote_src: yes
+      src: "{{ orbeon_source }}/orbeon.war"
+      dest: "/var/lib/tomcat/webapps/orbeon.war"
+      user: "tomcat"
+      group: "tomcat"
+    become: true
+
+  - name: "Cleanup Orbeon"
+    file:
+     src: "{{ orbeon_source }}"
+     state: "absent"
+  when: "not orbeon_tomcat.stat.exists | bool or orbeon_rebuild | bool"
