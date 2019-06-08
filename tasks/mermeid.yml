@@ -7,39 +7,70 @@
 - name: "add template for {{ items }}"
   template:
     src: "{{ item }}"
-    dest: "{{ mermeid_source }}/trunk/local_config/{{ item | replace('\\.j2','')}}_{{ instance_name }}"
+    dest: "{{ mermeid_local_config }}/{{ item | regex_replace('\\.j2','')}}_{{ instance_name }}"
   with_items:
   - "mermeid_configuration.xml.j2"
   - "login.xqm.j2"  
 
+- name: "Copy bibliograhpy, redirect"
+  copy:
+    remote_src: yes
+    src: "{{ mermeid_local_config }}/{{ item }}"
+    dest: "{{ mermeid_local_config }}/{{ item | regex_replace('_distro','')}}_{{ instance_name }}"
+  with_items:
+  - "redirect_host.xqm_distro"
+  - "standard_bibliography.xml_distro"
+
 - name: "create orbeon dir"
   file:
-    path: "/var/lib/tomcat/webapps/orbeon/xforms-jsp/mei-form"
-    state: directory
+    path: "{{ orbeon_mei_form_path }}"
+    state: "directory"
     owner: "tomcat"
     group: "tomcat"
+  become: true
 
 - name: "place mei-form in orbeon"
   copy:
     remote_src: yes
-    src: "{{ mermeid_source }}/orbeon/mei_form.jsp"
+    src: "{{ mermeid_source }}/trunk/orbeon/mei_form.jsp"
     dest: "{{ orbeon_mei_form_path }}/index.jsp"
+    owner: "tomcat"
+    group: "tomcat"
+  become: true
+
+- name: "copy orbeon properties to webapps"
+  copy:
+    remote_src: yes
+    src: "{{ mermeid_source }}/trunk/orbeon/properties-local.xml"
+    dest: "/var/lib/tomcat/webapps/orbeon/WEB-INF/resources/config/properties-prod.xml"
+    owner: "tomcat"
+    group: "tomcat"
+  become: true
 
 - name: "build MerMEId"
   shell: "ant clean && ant -Dwebapp.instance={{ instance_name }}"
-  vars:
-    chdir: "{{ mermeid_source }}"
+  args:
+    chdir: "{{ mermeid_source }}/trunk"
 
 - name: "deploy MerMeID"
   copy:
     remote_src: yes
-    src: "{{ mermeid_source }}/editor.war"
+    src: "{{ mermeid_source }}/trunk/mermeid/editor.war"
     dest: "/var/lib/tomcat/webapps/editor.war"
+    owner: "tomcat"
+    group: "tomcat"
+  become: true
 
 - name: "install MerMEId database to exist-db"
-  shell: "ant upload -Dwebapp.instance=mymermeid -Dhostport=localhost:8080 -Dserver.pass={{ existdb_password }}"
-  vars:
-    chdir: "{{ mermeid_source }}"
+  shell: "ant upload -Dwebapp.instance=mymermeid -Dhostport=localhost:8080 -Dserver.pass={{ existdb_password[inventory_hostname] }}"
+  args:
+    chdir: "{{ mermeid_source }}/trunk"
+
+- name: "add execute permission to xchmod.xq"
+  
+- name: "create public folder"
+
+- name: "run xchmod.xq"
 
 - name: "grant write permissions from API"
   shell: "curl {{ item }}"
@@ -47,3 +78,13 @@
   - "http://localhost:8080/exist/rest/db/apps/filter/xchmod.xq"
   - "http://localhost:8080/exist/rest/db/mermeid/xchmod.xq"
 
+- name: "Write htpasswd file"
+  htpasswd:
+    path: "{{ mermeid_basic_auth_file }}" 
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    owner: "root"
+    group: "apache"
+    mode: "0640"
+  with_items: "{{ mermeid_users }}"
+  become: true

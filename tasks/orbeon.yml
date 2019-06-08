@@ -5,24 +5,43 @@
 
 - name: "Orbeon Block"
   block:
-  - name: "unarchive"
-    unarchive:
-      remote_src: "yes"
-      src: "{{ orbeon_download_url }}"
-      dest: "{{ orbeon_source }}"
+  - name: "create orbeon dir"
+    file:
+      path: "{{ orbeon_source }}"
+      state: "directory"
+  
+  - name: "get orbeon"
+    get_url:
+      url: "{{ orbeon_download_url }}"
+      dest: "/home/centos/orbeon/orbeon.zip"
 
+  - name: "unzip orbeon"
+    shell: "unzip -j orbeon.zip"
+    args:
+      chdir: "/home/centos/orbeon"
 
   - name: "Deploy Orbeon"
     copy:
       remote_src: yes
       src: "{{ orbeon_source }}/orbeon.war"
       dest: "/var/lib/tomcat/webapps/orbeon.war"
-      user: "tomcat"
+      owner: "tomcat"
       group: "tomcat"
+    become: true
+  
+  - name: "wait for orbeon to be unpacked"
+    wait_for:
+      timeout: 5
+
+  - name: "replace log4j location"
+    replace:
+      path: "/var/lib/tomcat/webapps/orbeon/WEB-INF/resources/config/log4j.xml"
+      regexp: "\\.\\./logs/orbeon.log"
+      replace: "/var/log/tomcat/orbeon.log"
     become: true
 
   - name: "Cleanup Orbeon"
     file:
-     src: "{{ orbeon_source }}"
-     state: "absent"
+      path: "{{ orbeon_source }}"
+      state: "absent"
   when: "not orbeon_tomcat.stat.exists | bool or orbeon_rebuild | bool"
