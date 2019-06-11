@@ -3,6 +3,15 @@
     version: "{{ mermeid_version }}"
     repo: "{{ mermeid_git_repo }}"
     dest: "{{ mermeid_source }}"
+  become: true
+
+- name: "add permissions for {{ mermeid_source }}"
+  file:
+    path: "{{ mermeid_source }}"
+    recurse: yes
+    owner: "{{ exist_user }}"
+    group: "{{ exist_user }}"
+  become: true
 
 - name: "add template for {{ items }}"
   template:
@@ -11,6 +20,8 @@
   with_items:
   - "mermeid_configuration.xml.j2"
   - "login.xqm.j2"  
+  become_user: "{{ worker_name }}"
+  become: true
 
 - name: "Copy bibliograhpy, redirect"
   copy:
@@ -20,6 +31,8 @@
   with_items:
   - "redirect_host.xqm_distro"
   - "standard_bibliography.xml_distro"
+  become_user: "{{ worker_name }}"
+  become: true
 
 - name: "create orbeon dir"
   file:
@@ -42,7 +55,7 @@
   copy:
     remote_src: yes
     src: "{{ mermeid_source }}/trunk/orbeon/properties-local.xml"
-    dest: "/var/lib/tomcat/webapps/orbeon/WEB-INF/resources/config/properties-prod.xml"
+    dest: "/var/lib/tomcat/webapps/orbeon/WEB-INF/resources/config/properties-local.xml"
     owner: "tomcat"
     group: "tomcat"
   become: true
@@ -51,6 +64,8 @@
   shell: "ant clean && ant -Dwebapp.instance={{ instance_name }}"
   args:
     chdir: "{{ mermeid_source }}/trunk"
+  become_user: "{{ worker_name }}"
+  become: true
 
 - name: "deploy MerMeID"
   copy:
@@ -66,17 +81,34 @@
   args:
     chdir: "{{ mermeid_source }}/trunk"
 
-- name: "add execute permission to xchmod.xq"
-  
-- name: "create public folder"
-
-- name: "run xchmod.xq"
-
-- name: "grant write permissions from API"
-  shell: "curl {{ item }}"
+- name: "run xqueries to prepare exist-db (xchmod, create public dir)"
+  shell: "bin/client.sh -u admin -P \"{{ existdb_password[inventory_hostname] }}\" -F {{ mermeid_source }}/trunk/xqueries/{{ item }} -ouri=xmldb:exist://localhost:{{ exist_http_port }}/exist/xmlrpc && touch {{ exist_home }}/exist/webapp/WEB-INF/data/.{{ item }}"
+  args:
+    chdir: "{{ exist_home }}/exist"
+    creates: "{ exist_home }}/exist/webapp/WEB-INF/data/.{{ item }}"
   with_items:
-  - "http://localhost:8080/exist/rest/db/apps/filter/xchmod.xq"
-  - "http://localhost:8080/exist/rest/db/mermeid/xchmod.xq"
+  - "bootstrap_xchmod.xq"
+  - "xchmod.xq"
+  - "create_public.xq"
+  become_user: "{{ worker_name }}"
+  become: true
+  environment:
+    EXIST_HOME: "{{ exist_home }}/exist"
+
+#- name: "create public folder"
+#- name: "run xchmod.xq"
+
+    #- name: "grant write permissions from API"
+    #get_url:
+    # url: "{{ item }}"
+    #   force_basic_auth: "yes"
+    # url_username: "admin"
+    #    url_password: "existdb_password[inventory_hostname]"
+    # dest: "/home/centos/result"
+    # with_items:
+    #- "http://localhost:8080/exist/rest/db/mermeid/bootstrap_xchmod.xq"
+    #- "http://localhost:8080/exist/rest/db/apps/filter/xchmod.xq"
+    #- "http://localhost:8080/exist/rest/db/mermeid/xchmod.xq"
 
 - name: "Write htpasswd file"
   htpasswd:

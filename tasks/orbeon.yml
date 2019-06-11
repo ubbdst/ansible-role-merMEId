@@ -31,7 +31,8 @@
   
   - name: "wait for orbeon to be unpacked"
     wait_for:
-      timeout: 5
+      path: "/var/lib/tomcat/webapps/orbeon/WEB-INF/resources/config/log4j.xml"
+      timeout: 50
 
   - name: "replace log4j location"
     replace:

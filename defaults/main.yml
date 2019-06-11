@@ -2,8 +2,8 @@
 # defaults file for mermeid
 mermeid_instance_name: "{{ instance_name }}"
 mermeid_git: "git@github.com:ubbdst/MerMEId.git"
-mermeid_source: "/home/centos/mermeid"
-mermeid_version: " 2018.2"
+mermeid_source: "/usr/local/mermeid"
+mermeid_version: "grieg" #"2018.2"
 mermeid_dependencies: ["ant","unzip", "python-passlib"]
 exist_db_version: "4.7.0"
 orbeon_download_url: "https://github.com/orbeon/orbeon-forms/releases/download/tag-release-4.9-ce/orbeon-4.9.0.201505052329-CE.zip"
@@ -14,4 +14,3 @@ orbeon_mei_form_path: "/var/lib/tomcat/webapps/orbeon/xforms-jsp/mei-form"
 mermeid_local_config: "{{ mermeid_source }}/trunk/local_config"
 mermeid_basic_auth_file: "/var/www/password-store"
 mermeid_users: "{{ vault_mermeid_users }}"
-
